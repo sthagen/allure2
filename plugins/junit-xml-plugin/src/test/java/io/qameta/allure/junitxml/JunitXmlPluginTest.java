@@ -1,3 +1,18 @@
+/*
+ *  Copyright 2019 Qameta Software OÜ
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 package io.qameta.allure.junitxml;
 
 import io.qameta.allure.Issue;
@@ -12,10 +27,9 @@ import io.qameta.allure.entity.Status;
 import io.qameta.allure.entity.TestResult;
 import io.qameta.allure.entity.Time;
 import org.assertj.core.groups.Tuple;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 
 import java.io.IOException;
@@ -26,6 +40,7 @@ import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -39,24 +54,22 @@ import static org.mockito.Mockito.when;
 /**
  * @author charlie (Dmitry Baev).
  */
-public class JunitXmlPluginTest {
-
-    @Rule
-    public TemporaryFolder folder = new TemporaryFolder();
+class JunitXmlPluginTest {
 
     private Configuration configuration;
-
     private ResultsVisitor visitor;
+    private Path resultsDirectory;
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeEach
+    void setUp(@TempDir final Path resultsDirectory) {
         configuration = mock(Configuration.class);
         when(configuration.requireContext(RandomUidContext.class)).thenReturn(new RandomUidContext());
         visitor = mock(ResultsVisitor.class);
+        this.resultsDirectory = resultsDirectory;
     }
 
     @Test
-    public void shouldReadJunitResults() throws Exception {
+    void shouldReadJunitResults() throws Exception {
         process(
                 "junitdata/TEST-org.allurefw.report.junit.JunitTestResultsTest.xml",
                 "TEST-org.allurefw.report.junit.JunitTestResultsTest.xml"
@@ -87,7 +100,7 @@ public class JunitXmlPluginTest {
     }
 
     @Test
-    public void shouldAddLogAsAttachment() throws Exception {
+    void shouldAddLogAsAttachment() throws Exception {
         final Attachment hey = new Attachment().setUid("some-uid");
         when(visitor.visitAttachmentFile(any())).thenReturn(hey);
         process(
@@ -118,8 +131,9 @@ public class JunitXmlPluginTest {
                 .containsExactly(Tuple.tuple("System out", "some-uid"));
     }
 
+    @SuppressWarnings("unchecked")
     @Test
-    public void shouldAddLabels() throws Exception {
+    void shouldAddLabels() throws Exception {
         process(
                 "junitdata/TEST-test.SampleTest.xml", "TEST-test.SampleTest.xml"
         );
@@ -140,7 +154,7 @@ public class JunitXmlPluginTest {
     }
 
     @Test
-    public void shouldSkipInvalidXml() throws Exception {
+    void shouldSkipInvalidXml() throws Exception {
         process(
                 "junitdata/invalid.xml", "sample-testsuite.xml"
         );
@@ -149,7 +163,7 @@ public class JunitXmlPluginTest {
     }
 
     @Test
-    public void shouldProcessTestsWithRetry() throws Exception {
+    void shouldProcessTestsWithRetry() throws Exception {
         process(
                 "junitdata/TEST-test.RetryTest.xml", "TEST-test.SampleTest.xml"
         );
@@ -178,26 +192,41 @@ public class JunitXmlPluginTest {
     }
 
     @Test
-    public void shouldReadCdataMessage() throws Exception {
+    void shouldReadStatusMessage() throws Exception {
         process(
                 "junitdata/TEST-test.CdataMessage.xml", "TEST-test.SampleTest.xml"
         );
 
 
         final ArgumentCaptor<TestResult> captor = ArgumentCaptor.forClass(TestResult.class);
-        verify(visitor, times(1)).visitTestResult(captor.capture());
+        verify(visitor, times(2)).visitTestResult(captor.capture());
 
         assertThat(captor.getAllValues())
                 .extracting(TestResult::getStatusMessage, TestResult::getStatusTrace)
                 .containsExactlyInAnyOrder(
-                        tuple("some-message", "some-trace")
+                        tuple("some-message", "some-trace"),
+                        tuple(null,null)
                 );
+    }
 
+    @Test
+    void shouldReadSystemOutMessage() throws Exception {
+        process(
+                "junitdata/TEST-test.CdataMessage.xml", "TEST-test.SampleTest.xml"
+        );
+
+        final ArgumentCaptor<TestResult> captor = ArgumentCaptor.forClass(TestResult.class);
+        verify(visitor, times(2)).visitTestResult(captor.capture());
+
+        assertThat(captor.getAllValues())
+                .filteredOn(result -> result.getTestStage().getSteps().size() == 2)
+                .filteredOn(result -> result.getTestStage().getSteps().get(0).getName().equals("output"))
+                .filteredOn(result -> result.getTestStage().getSteps().get(1).getName().equals("more output"));
     }
 
     @Issue("532")
     @Test
-    public void shouldParseSuitesTag() throws Exception {
+    void shouldParseSuitesTag() throws Exception {
         process(
                 "junitdata/testsuites.xml", "TEST-test.SampleTest.xml"
         );
@@ -214,8 +243,9 @@ public class JunitXmlPluginTest {
                 );
     }
 
+    @SuppressWarnings("unchecked")
     @Test
-    public void shouldProcessTimestampIfPresent() throws Exception {
+    void shouldProcessTimestampIfPresent() throws Exception {
         process(
                 "junitdata/with-timestamp.xml", "TEST-test.SampleTest.xml"
         );
@@ -232,7 +262,7 @@ public class JunitXmlPluginTest {
     }
 
     @Test
-    public void shouldUseSuiteNameIfPresent() throws Exception {
+    void shouldUseSuiteNameIfPresent() throws Exception {
         process(
                 "junitdata/with-timestamp.xml", "TEST-test.SampleTest.xml"
         );
@@ -249,7 +279,7 @@ public class JunitXmlPluginTest {
     }
 
     @Test
-    public void shouldUseHostnameIfPresent() throws Exception {
+    void shouldUseHostnameIfPresent() throws Exception {
         process(
                 "junitdata/with-timestamp.xml", "TEST-test.SampleTest.xml"
         );
@@ -266,7 +296,7 @@ public class JunitXmlPluginTest {
     }
 
     @Test
-    public void shouldReadSkippedStatus() throws Exception {
+    void shouldReadSkippedStatus() throws Exception {
         process(
                 "junitdata/TEST-status-attribute.xml", "TEST-test.SampleTest.xml"
         );
@@ -282,8 +312,9 @@ public class JunitXmlPluginTest {
 
     }
 
+    @SuppressWarnings("unchecked")
     @Test
-    public void shouldProcessFilesWithZuluTimestamp() throws Exception {
+    void shouldProcessFilesWithZuluTimestamp() throws Exception {
         process(
                 "junitdata/zulu-timestamp.xml",
                 "TEST-test.SampleTest.xml"
@@ -302,7 +333,6 @@ public class JunitXmlPluginTest {
     }
 
     private void process(String... strings) throws IOException {
-        Path resultsDirectory = folder.newFolder().toPath();
         Iterator<String> iterator = Arrays.asList(strings).iterator();
         while (iterator.hasNext()) {
             String first = iterator.next();
@@ -316,7 +346,7 @@ public class JunitXmlPluginTest {
 
     private void copyFile(Path dir, String resourceName, String fileName) throws IOException {
         try (InputStream is = getClass().getClassLoader().getResourceAsStream(resourceName)) {
-            Files.copy(is, dir.resolve(fileName));
+            Files.copy(Objects.requireNonNull(is), dir.resolve(fileName));
         }
     }
 

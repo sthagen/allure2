@@ -2,7 +2,8 @@ import LocalStorageModel from '../data/localstorage/LocalStorageModel';
 
 const globalSettingsDefaults = {
     language: 'en',
-    sidebarCollapsed: false
+    sidebarCollapsed: false,
+    sideBySidePosition: [50, 50]
 };
 
 const treePluginDefaults = {
@@ -12,6 +13,10 @@ const treePluginDefaults = {
         skipped: true,
         unknown: true,
         passed: true
+    },
+    visibleMarks: {
+        flaky: false,
+        newFailed: false
     },
     showGroupInfo: false,
     treeSorting: {
@@ -44,6 +49,14 @@ function getGlobalSettings() {
 
         setSidebarCollapsed(value) {
             return this.save('sidebarCollapsed', value);
+        },
+
+        getSideBySidePosition() {
+            return this.get('sideBySidePosition');
+        },
+
+        setSideBySidePosition(size) {
+            return this.save('sideBySidePosition', size);
         }
     });
     const settings = new SettingsModel();
@@ -100,6 +113,14 @@ function getSettingsForTreePlugin(pluginName, defaults = treePluginDefaults) {
 
         setVisibleStatuses(value) {
             return this.save('visibleStatuses', value);
+        },
+
+        getVisibleMarks() {
+            return this.get('visibleMarks');
+        },
+
+        setVisibleMarks(value) {
+            return this.save('visibleMarks', value);
         },
 
         getTreeSorting() {

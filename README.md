@@ -6,33 +6,31 @@
 [twitter-team]: https://twitter.com/QametaSoftware/lists/team/members "Team"
 [build]: https://ci.qameta.io/job/allure2/job/master "Build"
 [build-badge]: https://ci.qameta.io/buildStatus/icon?job=allure2/master
-[bintray]: https://bintray.com/qameta/generic/allure2 "Bintray"
-[bintray-badge]: https://img.shields.io/bintray/v/qameta/generic/allure2.svg?style=flat
+[maven]: https://repo.maven.apache.org/maven2/io/qameta/allure/allure-commandline/ "Maven Central"
+[maven-badge]: https://img.shields.io/maven-central/v/io.qameta.allure/allure-commandline.svg?style=flat
 [release]: https://github.com/allure-framework/allure2/releases/latest "Latest release"
 [release-badge]: https://img.shields.io/github/release/allure-framework/allure2.svg?style=flat
 [CONTRIBUTING.md]: .github/CONTRIBUTING.md
 [CODE_OF_CONDUCT.md]: CODE_OF_CONDUCT.md
 [docs]: https://docs.qameta.io/allure/
 
-# Allure Report [![build-badge][]][build] [![release-badge][]][release] [![bintray-badge][]][bintray] [![Backers on Open Collective](https://opencollective.com/allure-report/backers/badge.svg)](#backers) [![Sponsors on Open Collective](https://opencollective.com/allure-report/sponsors/badge.svg)](#sponsors) 
+# Allure Report [![build-badge][]][build] [![release-badge][]][release] [![maven-badge][]][maven] [![Backers on Open Collective](https://opencollective.com/allure-report/backers/badge.svg)](#backers) [![Sponsors on Open Collective](https://opencollective.com/allure-report/sponsors/badge.svg)](#sponsors)
 
-Allure Framework is a flexible lightweight multi-language test report tool that not only 
-shows a very concise representation of what have been tested in a neat web report form, 
-but allows everyone participating in the development process to extract maximum of useful 
+Allure Framework is a flexible lightweight multi-language test report tool that not only
+shows a very concise representation of what have been tested in a neat web report form,
+but allows everyone participating in the development process to extract maximum of useful
 information from everyday execution of tests.
 
 ![Allure Report](.github/readme-img.png)
 
-## Download 
+## Download
 
 You can use one of the following ways to get Allure:
 
-* Grab it from [bintray][bintray]. 
-* Using Homebrew: 
+* Grab it from [bintray](https://bintray.com/qameta/maven/allure2) (see Downloads section).
+* Using Homebrew:
 
     ```bash
-    $ brew untap qameta/allure
-    $ brew update
     $ brew install allure
     ```
 * For Windows, Allure is available from the [Scoop](http://scoop.sh/) commandline-installer.
@@ -41,16 +39,16 @@ To install Allure, download and install Scoop and then execute in the Powershell
     ```bash
     scoop install allure
     ```
-    
 
-## Documentation 
+
+## Documentation
 
 All the documentation is available [on our site][docs].
 
 ## Staying in Touch
 
 Follow [@QametaSoftware][twitter] and its [team members][twitter-team] on Twitter. In-depth articles can
-be found at [Qameta Blog][blog]. Also feel free to join our 
+be found at [Qameta Blog][blog]. Also feel free to join our
 [Gitter room][gitter] ([ru][gitter-ru]).
 
 ## Code of Conduct

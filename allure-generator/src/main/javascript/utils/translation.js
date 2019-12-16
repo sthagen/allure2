@@ -9,6 +9,9 @@ export const LANGUAGES = [
     {id: 'he', title: 'Hebrew'},
     {id: 'br', title: 'Brazil'},
     {id: 'pl', title: 'Polski'},
+    {id: 'ja', title: '日本語'},
+    {id: 'es', title: 'Español'},
+    {id: 'kr', title: '한국어'},
 ];
 
 LANGUAGES

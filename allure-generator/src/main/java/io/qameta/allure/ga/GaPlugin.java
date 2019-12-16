@@ -1,3 +1,18 @@
+/*
+ *  Copyright 2019 Qameta Software OÜ
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 package io.qameta.allure.ga;
 
 import io.qameta.allure.Aggregator;
@@ -7,6 +22,7 @@ import io.qameta.allure.entity.ExecutorInfo;
 import io.qameta.allure.entity.Label;
 import io.qameta.allure.entity.LabelName;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
@@ -54,10 +70,12 @@ public class GaPlugin implements Aggregator {
     private static final String GA_ENDPOINT = "https://www.google-analytics.com/collect";
     private static final String GA_API_VERSION = "1";
 
+    private static final String ALLURE_VERSION_TXT_PATH = "/allure-version.txt";
+
     @Override
     public void aggregate(final Configuration configuration,
                           final List<LaunchResults> launchesResults,
-                          final Path outputDirectory) throws IOException {
+                          final Path outputDirectory) {
         if (Objects.nonNull(System.getenv(GA_DISABLE))) {
             LOGGER.debug("analytics is disabled");
             return;
@@ -130,10 +148,26 @@ public class GaPlugin implements Aggregator {
     }
 
     private static String getAllureVersion() {
+        return getVersionFromFile()
+                .orElse(getVersionFromManifest().orElse(UNDEFINED));
+    }
+
+    private static Optional<String> getVersionFromFile() {
+        try {
+            return Optional.of(IOUtils.resourceToString(ALLURE_VERSION_TXT_PATH, StandardCharsets.UTF_8))
+                    .map(String::trim)
+                    .filter(v -> !v.isEmpty())
+                    .filter(v -> !"#project.version#".equals(v));
+        } catch (IOException e) {
+            LOGGER.debug("Could not read {} resource", ALLURE_VERSION_TXT_PATH, e);
+            return Optional.empty();
+        }
+    }
+
+    private static Optional<String> getVersionFromManifest() {
         return Optional.of(GaPlugin.class)
                 .map(Class::getPackage)
-                .map(Package::getImplementationVersion)
-                .orElse(UNDEFINED);
+                .map(Package::getImplementationVersion);
     }
 
     private static String getExecutorType(final List<LaunchResults> launchesResults) {

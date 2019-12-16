@@ -7,9 +7,17 @@
         <div class="node__name">
             {{name}}
         </div>
+        <div class="tree__strut">&nbsp</div>
+        {{#if flaky}}
         <div class="{{b 'node' 'flaky' shown=flaky}}">
             {{allure-icon 'flaky'}}
         </div>
+        {{/if}}
+        {{#if newFailed}}
+        <div class="{{b 'node' 'newFailed' shown=newFailed}}">
+            {{allure-icon 'newFailed'}}
+        </div>
+        {{/if}}
         {{#if parameters}}
 
         <div class="node__parameters long-line line-ellipsis">
@@ -24,7 +32,6 @@
             {{/each}}
         </div>
         {{/if}}
-        <div class="tree__strut">&nbsp</div>
         <div class="node__stats">
             {{~duration time.duration~}}
         </div>

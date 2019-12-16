@@ -1,11 +1,10 @@
 description = 'Allure Cucumber json plugin'
 
 apply plugin: 'java-library-distribution'
-apply from: "${gradleScriptDir}/bintray.gradle"
-
-jar {
-    archiveName = 'plugin.jar'
-}
+//
+//jar {
+//    archiveName = 'plugin.jar'
+//}
 
 dependencies {
     compileOnly project(':allure-plugin-api')
@@ -17,15 +16,10 @@ dependencies {
     testCompile('org.slf4j:slf4j-simple')
 }
 
-configurations.archives.artifacts.removeAll { it.archiveTask.is jar }
-
-artifacts {
-    allurePlugin distZip
-}
-
-bintray {
-    configurations = ['allurePlugin']
-    pkg {
-        repo = 'generic'
-    }
-}
+//artifacts {
+//    allurePlugin distZip
+//}
+//
+//bintray {
+//    configurations = ['allurePlugin']
+//}

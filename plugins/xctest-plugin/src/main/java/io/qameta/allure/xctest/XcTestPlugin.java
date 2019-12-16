@@ -1,3 +1,18 @@
+/*
+ *  Copyright 2019 Qameta Software OÜ
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 package io.qameta.allure.xctest;
 
 import io.qameta.allure.Reader;
@@ -48,6 +63,9 @@ public class XcTestPlugin implements Reader {
     private static final String SUB_ACTIVITIES = "SubActivities";
     private static final String ACTIVITY_SUMMARIES = "ActivitySummaries";
     private static final String HAS_SCREENSHOT = "HasScreenshotData";
+
+    private static final String ATTACHMENTS = "Attachments";
+    private static final String ATTACHMENT_FILENAME = "Filename";
 
 
     @Override
@@ -127,7 +145,11 @@ public class XcTestPlugin implements Reader {
         }
 
         if (props.containsKey(HAS_SCREENSHOT)) {
-            addAttachment(directory, visitor, props, step);
+            addScreenshots(directory, visitor, props, step);
+        }
+
+        if (props.containsKey(ATTACHMENTS)) {
+            addAttachments(directory, visitor, props, step);
         }
 
         if (parent instanceof TestResult) {
@@ -148,17 +170,31 @@ public class XcTestPlugin implements Reader {
         lastFailedStep.map(Step::getStatusTrace).ifPresent(step::setStatusTrace);
     }
 
-    private void addAttachment(final Path directory,
-                               final ResultsVisitor visitor,
-                               final Map<String, Object> props,
-                               final Step step) {
+    private void addScreenshots(final Path directory,
+                                final ResultsVisitor visitor,
+                                final Map<String, Object> props,
+                                final Step step) {
         final String uuid = props.get("UUID").toString();
-        final Path attachments = directory.resolve("Attachments");
+        final Path attachments = directory.resolve(ATTACHMENTS);
         Stream.of("jpg", "png")
-            .map(ext -> attachments.resolve(String.format("Screenshot_%s.%s", uuid, ext)))
-            .filter(Files::exists)
-            .map(visitor::visitAttachmentFile)
-            .forEach(step.getAttachments()::add);
+                .map(ext -> attachments.resolve(String.format("Screenshot_%s.%s", uuid, ext)))
+                .filter(Files::exists)
+                .map(visitor::visitAttachmentFile)
+                .forEach(step.getAttachments()::add);
+    }
+
+    private void addAttachments(final Path directory,
+                                final ResultsVisitor visitor,
+                                final Map<String, Object> props,
+                                final Step step) {
+        final Path attachments = directory.resolve(ATTACHMENTS);
+        asList(props.get(ATTACHMENTS)).stream()
+                .map(this::asMap)
+                .map(p -> p.get(ATTACHMENT_FILENAME).toString())
+                .map(attachments::resolve)
+                .filter(Files::exists)
+                .map(visitor::visitAttachmentFile)
+                .forEach(step.getAttachments()::add);
     }
 
     @SuppressWarnings("unchecked")
