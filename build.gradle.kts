@@ -1,34 +1,5 @@
 import com.bmuschko.gradle.docker.tasks.image.Dockerfile
-import com.diffplug.gradle.spotless.SpotlessExtension
-import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
-import ru.vyarus.gradle.plugin.quality.QualityExtension
-
-buildscript {
-    repositories {
-        mavenLocal()
-        jcenter()
-        maven("https://plugins.gradle.org/m2/")
-    }
-
-    dependencies {
-        classpath("com.bmuschko:gradle-docker-plugin:5.0.0")
-        classpath("com.diffplug.spotless:spotless-plugin-gradle:3.24.2")
-        classpath("com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.4")
-        classpath("gradle.plugin.com.github.spotbugs:spotbugs-gradle-plugin:2.0.0")
-        classpath("io.spring.gradle:dependency-management-plugin:1.0.8.RELEASE")
-        classpath("net.researchgate:gradle-release:2.8.0")
-        classpath("ru.vyarus:gradle-quality-plugin:3.4.0")
-    }
-}
-
-plugins {
-    java
-    id("net.researchgate.release") version "2.7.0"
-}
-
-tasks.withType(Wrapper::class) {
-    gradleVersion = "5.6.1"
-}
+import java.nio.charset.StandardCharsets.UTF_8
 
 val linkHomepage by extra("https://qameta.io/allure")
 val linkCi by extra("https://ci.qameta.io/job/allure2")
@@ -41,20 +12,44 @@ val gradleScriptDir by extra("$root/gradle")
 val qualityConfigsDir by extra("$gradleScriptDir/quality-configs")
 val spotlessDtr by extra("$qualityConfigsDir/spotless")
 
-release {
-    tagTemplate = "\${version}"
-    failOnCommitNeeded = false
-    failOnUnversionedFiles = false
+tasks.wrapper {
+    gradleVersion = "6.8.3"
 }
 
-val afterReleaseBuild by tasks.existing
-
-configure(listOf(rootProject)) {
-    description = "Allure Report"
-    group = "io.qameta.allure"
+plugins {
+    java
+    `java-library`
+    `maven-publish`
+    signing
+    id("com.bmuschko.docker-remote-api") version "6.7.0"
+    id("io.github.gradle-nexus.publish-plugin") version "1.1.0"
+    id("com.diffplug.spotless") version "5.14.1"
+    id("com.gorylenko.gradle-git-properties") version "2.3.1"
+    id("io.spring.dependency-management") version "1.0.11.RELEASE"
+    id("ru.vyarus.quality") version "4.6.0"
 }
 
-configure(subprojects) {
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+allprojects {
+    tasks.withType<JavaCompile>().configureEach {
+        options.encoding = "UTF-8"
+    }
+}
+
+description = "Allure Report"
+group = "io.qameta.allure"
+
+nexusPublishing {
+    repositories {
+        sonatype()
+    }
+}
+
+subprojects {
     group = if (project.name.endsWith("plugin")) {
         "io.qameta.allure.plugins"
     } else {
@@ -63,35 +58,34 @@ configure(subprojects) {
     version = version
 
     apply(plugin = "java")
-    apply(plugin = "maven")
+    apply(plugin = "signing")
+    apply(plugin = "maven-publish")
     apply(plugin = "ru.vyarus.quality")
-    apply(plugin = "com.diffplug.gradle.spotless")
+    apply(plugin = "com.diffplug.spotless")
     apply(plugin = "io.spring.dependency-management")
-    apply(from = "$gradleScriptDir/bintray.gradle")
-    apply(from = "$gradleScriptDir/maven-publish.gradle")
 
-    configure<DependencyManagementExtension> {
+    dependencyManagement {
         imports {
-            mavenBom("com.fasterxml.jackson:jackson-bom:2.9.8")
-            mavenBom("org.junit:junit-bom:5.4.0")
+            mavenBom("com.fasterxml.jackson:jackson-bom:2.12.4")
+            mavenBom("org.junit:junit-bom:5.7.2")
         }
         dependencies {
-            dependency("com.beust:jcommander:1.78")
-            dependency("com.github.spotbugs:spotbugs-annotations:3.1.12")
+            dependency("com.beust:jcommander:1.81")
+            dependency("com.github.spotbugs:spotbugs-annotations:4.3.0")
             dependency("com.opencsv:opencsv:4.6")
-            dependency("com.vladsch.flexmark:flexmark:0.50.36")
-            dependency("commons-io:commons-io:2.6")
+            dependency("com.vladsch.flexmark:flexmark:0.62.2")
+            dependency("commons-io:commons-io:2.11.0")
             dependency("javax.xml.bind:jaxb-api:2.3.1")
             dependency("org.allurefw:allure1-model:1.0")
-            dependency("org.apache.commons:commons-lang3:3.9")
-            dependency("org.apache.httpcomponents:httpclient:4.5.9")
-            dependency("org.apache.tika:tika-core:1.22")
-            dependency("org.assertj:assertj-core:3.13.2")
+            dependency("org.apache.commons:commons-lang3:3.12.0")
+            dependency("org.apache.httpcomponents:httpclient:4.5.13")
+            dependency("org.apache.tika:tika-core:1.27")
+            dependency("org.assertj:assertj-core:3.20.2")
             dependency("org.eclipse.jetty:jetty-server:9.4.20.v20190813")
-            dependency("org.freemarker:freemarker:2.3.29")
-            dependency("org.mockito:mockito-core:3.0.0")
-            dependency("org.projectlombok:lombok:1.18.8")
-            dependency("org.zeroturnaround:zt-zip:1.13")
+            dependency("org.freemarker:freemarker:2.3.31")
+            dependency("org.mockito:mockito-core:3.11.2")
+            dependency("org.projectlombok:lombok:1.18.20")
+            dependency("org.zeroturnaround:zt-zip:1.14")
             dependencySet("org.slf4j:1.7.28") {
                 entry("slf4j-api")
                 entry("slf4j-nop")
@@ -111,17 +105,7 @@ configure(subprojects) {
         }
     }
 
-    java {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-    }
-
-    tasks.compileJava {
-        options.encoding = "UTF-8"
-    }
-
     tasks.compileTestJava {
-        options.encoding = "UTF-8"
         options.compilerArgs.add("-parameters")
     }
 
@@ -130,16 +114,20 @@ configure(subprojects) {
             attributes(mapOf(
                     "Implementation-Title" to project.name,
                     "Implementation-Version" to project.version
-
             ))
         }
     }
 
     tasks.test {
-        useJUnitPlatform()
+        systemProperty("org.slf4j.simpleLogger.defaultLogLevel", "debug")
+        systemProperty("allure.model.indentOutput", "true")
+        systemProperty("junit.jupiter.execution.parallel.enabled", true)
+        systemProperty("junit.jupiter.execution.parallel.mode.default", true)
         testLogging {
-            events("passed", "skipped", "failed")
+            listOf(org.gradle.api.tasks.testing.logging.TestLogEvent.FAILED)
         }
+        maxHeapSize = project.property("test.maxHeapSize").toString()
+        maxParallelForks = Integer.parseInt(project.property("test.maxParallelForks") as String)
     }
 
     tasks.processTestResources {
@@ -150,86 +138,155 @@ configure(subprojects) {
         }
     }
 
-    val sourceJar by tasks.creating(Jar::class) {
-        from(sourceSets.getByName("main").allSource)
-        archiveClassifier.set("sources")
+    quality {
+        configDir = "$gradleScriptDir/quality-configs"
+        excludeSources = fileTree("build/generated-sources")
+        exclude("**/*.json")
+        checkstyleVersion = "8.36.1"
+        pmdVersion = "6.28.0"
+        spotbugsVersion = "4.1.2"
+        codenarcVersion = "1.6"
+        spotbugs = true
+        codenarc = true
+        pmd = true
+        checkstyle = true
+        htmlReports = false
+
+        afterEvaluate {
+            val spotbugs = configurations.findByName("spotbugs")
+            if (spotbugs != null) {
+                dependencies {
+                    spotbugs("org.slf4j:slf4j-simple")
+                    spotbugs("com.github.spotbugs:spotbugs:4.2.3")
+                }
+            }
+        }
     }
 
-    val javadocJar by tasks.creating(Jar::class) {
-        from(tasks.getByName("javadoc"))
-        archiveClassifier.set("javadoc")
+    spotless {
+        java {
+            target("src/**/*.java")
+            removeUnusedImports()
+            importOrder("", "jakarta", "javax", "java", "\\#")
+            licenseHeader(file("$spotlessDtr/allure.java.license").readText(UTF_8))
+            endWithNewline()
+            replaceRegex("one blank line after package line", "(package .+;)\n+import", "$1\n\nimport")
+            replaceRegex("one blank line after import lists", "(import .+;\n\n)\n+", "$1")
+            replaceRegex("no blank line between jakarta & javax", "(import jakarta.+;\n)\n+(import javax.+;\n)", "$1$2")
+            replaceRegex("no blank line between javax & java", "(import javax.+;\n)\n+(import java.+;\n)", "$1$2")
+            replaceRegex("no blank line between jakarta & java", "(import jakarta.+;\n)\n+(import java.+;\n)", "$1$2")
+        }
+        format("misc") {
+            target(
+                    "*.gradle",
+                    "*.gitignore",
+                    "README.md",
+                    "CONTRIBUTING.md",
+                    "config/**/*.xml",
+                    "src/**/*.xml"
+            )
+            trimTrailingWhitespace()
+            endWithNewline()
+        }
+
+        encoding("UTF-8")
     }
 
-    tasks.withType(Javadoc::class) {
+    java {
+        withJavadocJar()
+        withSourcesJar()
+    }
+
+    tasks.withType<Javadoc>().configureEach {
         (options as StandardJavadocDocletOptions).addStringOption("Xdoclint:none", "-quiet")
     }
 
-    artifacts.add("archives", sourceJar)
-    artifacts.add("archives", javadocJar)
+    tasks.withType<GenerateModuleMetadata>().configureEach {
+        enabled = false
+    }
+    
+    publishing {
+        publications {
+            create<MavenPublication>("maven") {
+                from(components["java"])
+                suppressAllPomMetadataWarnings()
+                pom {
+                    name.set(project.name)
+                    description.set("Module ${project.name} of Allure Framework.")
+                    url.set("https://github.com/allure-framework/allure2")
+                    licenses {
+                        license {
+                            name.set("The Apache License, Version 2.0")
+                            url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
+                        }
+                    }
+                    developers {
+                        developer {
+                            id.set("baev")
+                            name.set("Dmitry Baev")
+                            email.set("dmitry.baev@qameta.io")
+                        }
+                        developer {
+                            id.set("eroshenkoam")
+                            name.set("Artem Eroshenko")
+                            email.set("artem.eroshenko@qameta.io")
+                        }
+                    }
+                    scm {
+                        developerConnection.set("scm:git:git://github.com/allure-framework/allure2")
+                        connection.set("scm:git:git://github.com/allure-framework/allure2")
+                        url.set("https://github.com/allure-framework/allure2")
+                    }
+                    issueManagement {
+                        system.set("GitHub Issues")
+                        url.set("https://github.com/allure-framework/allure2/issues")
+                    }
+                    versionMapping {
+                        usage("java-api") {
+                            fromResolutionOf("runtimeClasspath")
+                        }
+                        usage("java-runtime") {
+                            fromResolutionResult()
+                        }
+                    }
+                }
+            }
+        }
+    }
 
-    val allurePlugin by configurations.creating
+    // Developers do not always have PGP configured,
+    // so activate signing for release versions only
+    // Just in case Maven Central rejects signed snapshots for some reason
+    if (!version.toString().endsWith("-SNAPSHOT")) {
+        signing {
+            sign(publishing.publications["maven"])
+        }
+    }
+
+    val allurePlugin by configurations.creating {
+        isCanBeResolved = true
+        isCanBeConsumed = true
+        attributes {
+            attribute(Category.CATEGORY_ATTRIBUTE, objects.named("allure-plugin"))
+        }
+    }
 
     val pluginsDir = "$buildDir/plugins/"
-    val cleanPlugins by tasks.creating(Delete::class) {
-        group = "Build"
-        delete(pluginsDir)
-    }
     val copyPlugins by tasks.creating(Sync::class) {
         group = "Build"
-        dependsOn(allurePlugin, cleanPlugins)
-        from(Callable { allurePlugin.map { if (it.isDirectory) it else zipTree(it) } })
+        dependsOn(allurePlugin)
+        into(pluginsDir)
+        from(provider { allurePlugin.map { if (it.isDirectory) it else zipTree(it) } })
         eachFile {
             val segments = relativePath.segments
             segments[0] = segments[0].replace("-${project.version}", "")
         }
-        into(pluginsDir)
         includeEmptyDirs = false
     }
 
-    configure<SpotlessExtension> {
-        java {
-            target(fileTree(rootDir) {
-                include("src/**/*.java")
-            })
-            removeUnusedImports()
-            @Suppress("INACCESSIBLE_TYPE")
-            licenseHeaderFile("$spotlessDtr/header.java", "(package|import|open|module|//startfile)")
-            endWithNewline()
-            replaceRegex("one blank line after package line", "(package .+;)\n+import", "$1\n\nimport")
-            replaceRegex("one blank line after import lists", "(import .+;\n\n)\n+", "$1")
-        }
-        format("misc") {
-            target(fileTree(rootDir) {
-                include("**/*.gradle",
-                        "**/*.gitignore",
-                        "README.md",
-                        "CONTRIBUTING.md",
-                        "config/**/*.xml",
-                        "src/**/*.xml")
-            })
-            trimTrailingWhitespace()
-            endWithNewline()
-        }
-        encoding("UTF-8")
-    }
-
-    configure<QualityExtension> {
-        configDir = qualityConfigsDir
-        exclude("**/*.json")
-        checkstyleVersion = "8.17"
-        pmdVersion = "6.17.0"
-        spotbugsVersion = "3.1.12"
-        codenarcVersion = "1.4"
-    }
-
-    val bintrayUpload by tasks.existing
-    afterReleaseBuild {
-        dependsOn(bintrayUpload)
-    }
-
     repositories {
-        jcenter()
         mavenLocal()
+        mavenCentral()
     }
 }
 

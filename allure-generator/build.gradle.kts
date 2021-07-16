@@ -1,57 +1,63 @@
-import com.moowork.gradle.node.npm.NpmTask
-import com.moowork.gradle.node.NodeExtension
+import com.github.gradle.node.npm.task.NpmTask
 
 plugins {
     `java-library`
-    id("com.moowork.node") version "1.2.0"
+    id("com.github.node-gradle.node") version "3.1.0"
 }
 
 description = "Allure Report Generator"
 
-configure<NodeExtension> {
-    version = "10.10.0"
-    npmVersion = "6.4.1"
-    download = true
+node {
+    // enforce https
+    distBaseUrl.set("https://nodejs.org/dist")
+    version.set("14.16.1")
+    npmVersion.set("6.14.12")
+    download.set(true)
 }
 
 val generatedStatic = "build/www"
 
-val npmInstallDeps by tasks.creating(NpmTask::class) {
+tasks.npmInstall {
     group = "Build"
+    args.set(listOf("--silent"))
+    npmCommand.set(if (project.hasProperty("prod")) listOf("ci") else listOf("install"))
+    environment.set(mapOf("ADBLOCK" to "true"))
     inputs.file("package-lock.json")
     inputs.file("package.json")
 
     outputs.dir("node_modules")
-
-    setArgs(arrayListOf("install"))
 }
 
 val buildWeb by tasks.creating(NpmTask::class) {
     group = "Build"
-    dependsOn(npmInstallDeps)
+    dependsOn(tasks.npmInstall)
     inputs.file(".prettierrc")
     inputs.file("package-lock.json")
     inputs.file("package.json")
-    inputs.file(".eslintrc")
+    inputs.file(".eslintignore")
+    inputs.file(".eslintrc.js")
+    inputs.file("babel.config.js")
     inputs.files(fileTree("src/main/javascript"))
     inputs.files(fileTree("webpack"))
 
     outputs.dir(generatedStatic)
 
-    setArgs(arrayListOf("run", "build"))
+    args.set(listOf("run", "build", "--silent"))
 }
 
 val testWeb by tasks.creating(NpmTask::class) {
     group = "Verification"
-    dependsOn(npmInstallDeps)
+    dependsOn(tasks.npmInstall)
     inputs.file(".prettierrc")
     inputs.file("package-lock.json")
     inputs.file("package.json")
-    inputs.file(".eslintrc")
+    inputs.file(".eslintignore")
+    inputs.file(".eslintrc.js")
+    inputs.file("babel.config.js")
     inputs.files(fileTree("src/main/javascript"))
     inputs.files(fileTree("webpack"))
 
-    setArgs(arrayListOf("run", "test"))
+    args.set(listOf("run", "test", "--silent"))
 }
 
 val cleanUpDemoReport by tasks.creating(Delete::class) {
@@ -61,7 +67,7 @@ val cleanUpDemoReport by tasks.creating(Delete::class) {
 
 val generateDemoReport by tasks.creating(JavaExec::class) {
     group = "Documentation"
-    dependsOn(cleanUpDemoReport, tasks.getByName("copyPlugins"))
+    dependsOn(cleanUpDemoReport, tasks.named("copyPlugins"))
     main = "io.qameta.allure.DummyReportGenerator"
     classpath = sourceSets.getByName("test").runtimeClasspath
     systemProperty("allure.plugins.directory", "build/plugins")
@@ -70,8 +76,8 @@ val generateDemoReport by tasks.creating(JavaExec::class) {
 
 val dev by tasks.creating(NpmTask::class) {
     group = "Development"
-    dependsOn(npmInstallDeps, generateDemoReport)
-    setArgs(arrayListOf("run", "start"))
+    dependsOn(tasks.npmInstall, generateDemoReport)
+    args.set(listOf("run", "start"))
 }
 
 tasks.processResources {
@@ -110,9 +116,7 @@ dependencies {
     testImplementation("io.qameta.allure:allure-junit-platform")
     testImplementation("org.apache.commons:commons-lang3")
     testImplementation("org.assertj:assertj-core")
-    testImplementation("org.junit.jupiter:junit-jupiter-api")
-    testImplementation("org.junit.jupiter:junit-jupiter-params")
+    testImplementation("org.junit.jupiter:junit-jupiter")
     testImplementation("org.mockito:mockito-core")
     testImplementation("org.slf4j:slf4j-simple")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
 }
